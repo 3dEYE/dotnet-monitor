@@ -23,6 +23,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
     {
         public static async Task<int> Invoke(CancellationToken token, string[]? urls, string[]? metricUrls, bool metrics, string? diagnosticPort, bool noAuth, bool tempApiKey, bool noHttpEgress, FileInfo? configurationFilePath, bool exitOnStdinDisconnect)
         {
+            if (!ContainerInitializer.TryInitialize(out string? errorMessage))
+            {
+                Console.Error.WriteLine(errorMessage);
+                return -1;
+            }
+
             try
             {
                 StartupAuthenticationMode authMode = HostBuilderHelper.GetStartupAuthenticationMode(noAuth, tempApiKey);
