@@ -121,6 +121,10 @@
     <value>The name of the bucket used for storage</value>
     <comment>The description provided for the BucketName parameter on S3StorageEgressProviderOptions.</comment>
   </data>
+  <data name="DisplayAttributeDescription_S3StorageEgressProviderOptions_KeyPrefix" xml:space="preserve">
+    <value>The prefix to prepend to the S3 object key.</value>
+    <comment>The description provided for the KeyPrefix parameter on S3StorageEgressProviderOptions.</comment>
+  </data>
   <data name="DisplayAttributeDescription_S3StorageEgressProviderOptions_Endpoint" xml:space="preserve">
     <value>The endpoint of S3 to connect to. This is optional in case of using AWS storage.</value>
     <comment>The description provided for the Endpoint parameter on S3StorageEgressProviderOptions.</comment>

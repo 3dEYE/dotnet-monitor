@@ -44,9 +44,10 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
             bool uploadDone = false;
             try
             {
+                string objectKey = GetObjectKey(options, artifactSettings.Name);
                 client = await ClientFactory.CreateAsync(options, artifactSettings, token);
                 uploadId = await client.InitMultiPartUploadAsync(artifactSettings.Metadata, token);
-                await using var stream = new MultiPartUploadStream(client, options.BucketName, artifactSettings.Name, uploadId, options.CopyBufferSize);
+                await using var stream = new MultiPartUploadStream(client, options.BucketName, objectKey, uploadId, options.CopyBufferSize);
                 _logger.EgressProviderInvokeStreamAction(Constants.S3StorageProviderName);
                 await action(stream, token);
                 await stream.FinalizeAsync(token); // force to push the last part
@@ -65,7 +66,7 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
                     uploadDone = true;
                 }
 
-                string resourceId = GetResourceId(client, options, artifactSettings);
+                string resourceId = GetResourceId(client, options, objectKey);
                 return resourceId;
             }
             catch (AmazonS3Exception e)
@@ -76,10 +77,20 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
             }
         }
 
-        private string GetResourceId(IS3Storage client, S3StorageEgressProviderOptions options, EgressArtifactSettings artifactSettings)
+        internal static string GetObjectKey(S3StorageEgressProviderOptions options, string artifactName)
+        {
+            if (string.IsNullOrEmpty(options.KeyPrefix))
+            {
+                return artifactName;
+            }
+
+            return string.Concat(options.KeyPrefix.TrimEnd('/'), "/", artifactName);
+        }
+
+        private string GetResourceId(IS3Storage client, S3StorageEgressProviderOptions options, string objectKey)
         {
             if (!options.PreSignedUrlExpiry.HasValue)
-                return $"BucketName={options.BucketName}, Key={artifactSettings.Name}";
+                return $"BucketName={options.BucketName}, Key={objectKey}";
 
             DateTime expires = DateTime.UtcNow.Add(options.PreSignedUrlExpiry!.Value);
             string resourceId = client.GetTemporaryResourceUrl(expires);

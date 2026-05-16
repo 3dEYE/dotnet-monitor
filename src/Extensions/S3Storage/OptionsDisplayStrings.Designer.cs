@@ -139,6 +139,15 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage {
                 return ResourceManager.GetString("DisplayAttributeDescription_S3StorageEgressProviderOptions_KmsEncryptionKey", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The prefix to prepend to the S3 object key..
+        /// </summary>
+        public static string DisplayAttributeDescription_S3StorageEgressProviderOptions_KeyPrefix {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_S3StorageEgressProviderOptions_KeyPrefix", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to The amount of time the generated pre-signed url will be accessible..

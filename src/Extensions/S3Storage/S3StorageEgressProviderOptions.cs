@@ -24,6 +24,11 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
 
         [Display(
             ResourceType = typeof(OptionsDisplayStrings),
+            Description = nameof(OptionsDisplayStrings.DisplayAttributeDescription_S3StorageEgressProviderOptions_KeyPrefix))]
+        public string? KeyPrefix { get; set; }
+
+        [Display(
+            ResourceType = typeof(OptionsDisplayStrings),
             Description = nameof(OptionsDisplayStrings.DisplayAttributeDescription_S3StorageEgressProviderOptions_RegionName))]
         public string? RegionName { get; set; }
 

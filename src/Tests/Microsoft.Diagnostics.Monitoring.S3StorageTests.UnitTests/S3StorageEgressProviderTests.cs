@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Monitoring.S3StorageTests.UnitTests
             public InMemoryStorage S3;
             public override Task<IS3Storage> CreateAsync(S3StorageEgressProviderOptions options, EgressArtifactSettings settings, CancellationToken token)
             {
-                S3 = new InMemoryStorage(options.BucketName, settings.Name);
+                S3 = new InMemoryStorage(options.BucketName, S3StorageEgressProvider.GetObjectKey(options, settings.Name));
                 return Task.FromResult((IS3Storage)S3);
             }
         }
@@ -56,6 +56,36 @@ namespace Microsoft.Diagnostics.Monitoring.S3StorageTests.UnitTests
             var storage = clientFactory.S3;
             (string key, InMemoryStorage.StorageData data) = Assert.Single(storage.Storage);
             Assert.Equal(key, artifactSettings.Name);
+            Assert.Equal(totalBytes, data.Size);
+            Assert.Equal(stream.ToArray(), data.Bytes());
+        }
+
+        [Theory]
+        [InlineData("logs/diag", "logs/diag")]
+        [InlineData("logs/diag/", "logs/diag")]
+        public async Task ItShouldUploadFileWithKeyPrefix(string keyPrefix, string expectedPrefix)
+        {
+            var clientFactory = new InMemoryS3ClientFactory();
+            var sut = new S3StorageEgressProvider(_loggerProvider.CreateLogger<S3StorageEgressProvider>()) { ClientFactory = clientFactory };
+
+            // prepare
+            S3StorageEgressProviderOptions options = ConstructEgressProviderSettings();
+            options.KeyPrefix = keyPrefix;
+            EgressArtifactSettings artifactSettings = ConstructArtifactSettings();
+            string expectedKey = $"{expectedPrefix}/{artifactSettings.Name}";
+
+            // perform
+            var totalBytes = MultiPartUploadStream.MinimumSize * 3 + 1024;
+            using var stream = ConstructStream(totalBytes);
+            string resourceId = await sut.EgressAsync(options, stream.CopyToAsync, artifactSettings, CancellationToken.None);
+
+            // verify
+            Assert.Equal($"BucketName={options.BucketName}, Key={expectedKey}", resourceId);
+            Assert.NotEqual(expectedKey, artifactSettings.Name);
+
+            var storage = clientFactory.S3;
+            (string key, InMemoryStorage.StorageData data) = Assert.Single(storage.Storage);
+            Assert.Equal(key, expectedKey);
             Assert.Equal(totalBytes, data.Size);
             Assert.Equal(stream.ToArray(), data.Bytes());
         }
@@ -129,6 +159,36 @@ namespace Microsoft.Diagnostics.Monitoring.S3StorageTests.UnitTests
             var storage = clientFactory.S3;
             (string key, InMemoryStorage.StorageData data) = Assert.Single(storage.Storage);
             Assert.Equal(key, artifactSettings.Name);
+            Assert.Equal(totalBytes, data.Size);
+            Assert.Equal(stream.ToArray(), data.Bytes());
+        }
+
+        [Fact]
+        public async Task ItShouldUploadFileWithKeyPrefixAndGeneratePreSignedUrl()
+        {
+            var clientFactory = new InMemoryS3ClientFactory();
+            var sut = new S3StorageEgressProvider(_loggerProvider.CreateLogger<S3StorageEgressProvider>()) { ClientFactory = clientFactory };
+
+            // prepare
+            S3StorageEgressProviderOptions options = ConstructEgressProviderSettings();
+            options.KeyPrefix = "logs/diag";
+            options.PreSignedUrlExpiry = TimeSpan.FromMinutes(10);
+            EgressArtifactSettings artifactSettings = ConstructArtifactSettings();
+            string expectedKey = $"{options.KeyPrefix}/{artifactSettings.Name}";
+
+            // perform
+            var totalBytes = MultiPartUploadStream.MinimumSize * 3 + 1024;
+            using var stream = ConstructStream(totalBytes);
+            string resourceId = await sut.EgressAsync(options, stream.CopyToAsync, artifactSettings, CancellationToken.None);
+
+            // verify
+            var expiration = DateTime.UtcNow.Add(options.PreSignedUrlExpiry!.Value);
+            var expectation = $"local/{options.BucketName}/{expectedKey}/{expiration:yyyyMMddHH}";
+            Assert.StartsWith(expectation, resourceId);
+
+            var storage = clientFactory.S3;
+            (string key, InMemoryStorage.StorageData data) = Assert.Single(storage.Storage);
+            Assert.Equal(key, expectedKey);
             Assert.Equal(totalBytes, data.Size);
             Assert.Equal(stream.ToArray(), data.Bytes());
         }

@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
             bool exists = await AmazonS3Util.DoesS3BucketExistV2Async(s3Client, options.BucketName);
             if (!exists)
                 await s3Client.PutBucketAsync(options.BucketName, cancellationToken);
-            return new S3Storage(s3Client, options.BucketName, settings.Name, settings.ContentType, options.UseKmsEncryption, options.KmsEncryptionKey);
+            return new S3Storage(s3Client, options.BucketName, S3StorageEgressProvider.GetObjectKey(options, settings.Name), settings.ContentType, options.UseKmsEncryption, options.KmsEncryptionKey);
         }
 
         public async Task PutAsync(Stream inputStream, CancellationToken token)
